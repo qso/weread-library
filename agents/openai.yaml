@@ -1,0 +1,4 @@
+interface:
+  display_name: "微信读书 · 找书与精读"
+  short_description: "优先查本地书库，缺书再找微信读书，生成电子书并基于原文解读"
+  default_prompt: "使用 $weread-library，先查本地书库，找到我想读的书并解读核心观点与最值得读的章节；有歧义时先让我确认。"

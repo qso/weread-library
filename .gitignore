@@ -1,0 +1,40 @@
+# Local Python / Node environments and editor caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+node_modules/
+.DS_Store
+
+# Local configuration and account credentials
+.env
+.env.*
+!.env.example
+/auth/
+/accounts/
+**/clients/eink.json
+**/web-session.json
+**/api-login-*.png
+**/web-login-*.png
+**/Cookies
+**/Cookies-journal
+**/Login Data
+**/Login Data-journal
+**/Local State
+
+# Runtime, downloaded books, indexes and diagnostics are never release content
+/runtime/
+/books/
+/locks/
+/diagnostics/
+/catalogue.sqlite*
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.epub
+*.pdf
+*.mobi
+*.azw
+*.azw3
+*.log
