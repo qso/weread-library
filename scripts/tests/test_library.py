@@ -79,6 +79,20 @@ class LibraryTests(unittest.TestCase):
         self.assertIn("shorter_than_catalogue", corpus.quality("正文"*2000,7500)["issues"])
         self.assertIn("shorter_than_catalogue", corpus.quality("文"*6601,7526)["issues"])
 
+    def test_licensed_reader_copyright_requires_complete_template(self):
+        page = ("# 版权信息\n\n## 版权信息\n\n书名：离线样本\n作者：测试作者\n\n"
+                "出版社：测试出版社\n\n出版时间：2023-11-01\n\nISBN：9787559672346\n\n"
+                "品牌方：测试出版公司\n\n本书由测试出版公司授权微信读书进行制作与发行\n版权所有·侵权必究\n")
+        result = corpus.quality(page, 454)
+        self.assertEqual(result["issues"], [])
+        self.assertEqual(result["source_note"], "reader_generated_copyright")
+        for incomplete in (page.replace("版权所有·侵权必究", ""),
+                           page.replace("ISBN：9787559672346", ""),
+                           page.replace("出版时间：2023-11-01", ""),
+                           page.replace("版权信息", "第一章")):
+            with self.subTest(page=incomplete):
+                self.assertIn("shorter_than_catalogue", corpus.quality(incomplete, 454)["issues"])
+
     def test_builtin_ids_match_verified_reader_urls(self):
         ident="9ea32760725a697c9ea04e6"
         self.assertEqual(reader_hash("39479676"),ident)

@@ -105,13 +105,20 @@ def quality(text, expected_words=0):
     body = body_text(text)
     image_count = len(re.findall(r"!\[[^\]]*\]\([^)]*\)", text))
     image_only_frontmatter = image_count > 0 and expected_words <= 20
-    # WeRead Originals render their own short rights page. Its catalogue wordCount
-    # can describe a different page (observed: 429 vs 70 body characters), so the
-    # strict, recognizable platform template is not judged by that count alone.
+    # The reader renders its own short rights pages for both Originals and licensed
+    # books. Require a complete recognizable template, including the closing notice;
+    # catalogue wordCount can describe a different page and is not sufficient here.
+    original_rights = all(label in body for label in ("书名：", "作者：", "出品时间：",
+        "本书由微信读书出品并制作与发行", "版权所有·侵权必究"))
+    licensed_rights = (
+        all(re.search(r"(?m)^" + label + r"[：:]\s*\S+", text)
+            for label in ("书名", "作者", "出版社", "品牌方"))
+        and re.search(r"(?m)^出版时间[：:]\s*\d{4}-\d{2}-\d{2}\s*$", text)
+        and re.search(r"(?m)^ISBN[：:]\s*97[89][\d-]{10,14}\s*$", text)
+        and re.search(r"本书由[^\n]{2,100}授权微信读书进行制作与发行\s*版权所有·侵权必究\s*$", text))
     platform_copyright = (bool(re.search(r"(?m)^#{1,6}\s+版权信息\s*$", text))
                           and 50 <= len(body) < 400
-                          and all(label in body for label in ("书名：", "作者：", "出品时间：",
-                              "本书由微信读书出品并制作与发行", "版权所有·侵权必究")))
+                          and bool(original_rights or licensed_rights))
     issues = []
     # Only classify short boilerplate as a wall, not these words in ordinary prose.
     if len(body) < 350 and re.search(r"购买本书|开通会员.*阅读|扫码.*登录|暂不支持.*阅读|免费试读.*结束|验证后.*继续", body):

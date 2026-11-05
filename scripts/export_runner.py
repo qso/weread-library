@@ -13,7 +13,7 @@ import random
 import re
 import sys
 import time
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 from runtime import (DATA_HOME, SCRIPT_DIR, Failure, account_name, atomic_text, browser_path,
                      emit, lock, omni_web_session, private_dir, read_json, write_json)
@@ -26,24 +26,57 @@ from access import reader_issue, fallback_for
 
 logging.disable(logging.CRITICAL)  # Upstream debug output may contain session material.
 
+_IMAGE_CACHE = {}
+
+
+def allowed_image_url(url, *, redirect=False):
+    try:
+        parts = urlparse(url)
+        if parts.scheme != "https" or parts.username is not None or parts.password is not None or parts.port not in (None, 443):
+            return False
+        host = parts.hostname or ""
+        trusted = any(host == d or host.endswith("." + d) for d in ("weread.qq.com", "qpic.cn", "qlogo.cn"))
+        # Observed official image redirect; do not follow arbitrary external hosts.
+        return trusted or (redirect and bool(re.fullmatch(r"wrco-\d+\.[a-z0-9-]+\.gfp\.tencent-cloud\.com", host)))
+    except ValueError:
+        return False
+
+
+async def image_bytes(session, url):
+    for hop in range(4):
+        if not allowed_image_url(url, redirect=hop > 0):
+            raise ValueError("untrusted image URL")
+        async with session.get(url, allow_redirects=False) as response:
+            if response.status in (301, 302, 303, 307, 308):
+                location = response.headers.get("Location")
+                if not location:
+                    raise ValueError("missing image location")
+                url = urljoin(url, location)
+                continue
+            if response.status != 200:
+                raise ValueError("image unavailable")
+            data = bytearray()
+            async for chunk in response.content.iter_chunked(65536):
+                data.extend(chunk)
+                if len(data) > 12_000_000:
+                    raise ValueError("image too large")
+            return data
+    raise ValueError("too many image redirects")
+
 
 async def save_images(text, directory):
-    allowed = ("weread.qq.com", "qpic.cn", "qlogo.cn")
     private_dir(directory / "images")
     for url in dict.fromkeys(re.findall(r"!\[[^\]]*\]\((https://[^)]+)\)", text)):
-        host = urlparse(url).hostname or ""
-        if not any(host == d or host.endswith("."+d) for d in allowed):
+        if not allowed_image_url(url):
+            continue
+        key = (str(directory.resolve()), url)
+        cached = _IMAGE_CACHE.get(key)
+        if cached and (directory / cached).is_file():
+            text = text.replace("](" + url + ")", "](" + cached + ")")
             continue
         try:
             async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=30)) as session:
-                async with session.get(url, allow_redirects=False) as response:
-                    if response.status != 200:
-                        continue
-                    data = bytearray()
-                    async for chunk in response.content.iter_chunked(65536):
-                        data.extend(chunk)
-                        if len(data) > 12_000_000:
-                            raise ValueError("image too large")
+                data = await asyncio.wait_for(image_bytes(session, url), timeout=30)
             from PIL import Image
             import io
             with Image.open(io.BytesIO(data)) as im:
@@ -54,6 +87,7 @@ async def save_images(text, directory):
             relative = "images/" + hashlib.sha256(data).hexdigest() + "." + ext
             (directory / relative).write_bytes(data)
             (directory / relative).chmod(0o600)
+            _IMAGE_CACHE[key] = relative
             text = text.replace("]("+url+")", "]("+relative+")")
         except (aiohttp.ClientError, asyncio.TimeoutError, OSError, ValueError):
             continue

@@ -97,7 +97,7 @@ python3 -m unittest discover -s scripts/tests -v
 "${WEREAD_LIBRARY_HOME:-$HOME/.local/share/weread-library}/runtime/venv/bin/python" -m unittest discover -s scripts/tests -v
 ```
 
-目前 43 项检查通过；已实测会员可读流程、非会员受限流程、会话复用、无窗口读取、双页模式适配、缓存与部分 EPUB。其余权益和操作系统场景的具体范围见 [运行与验收记录](references/operations.md)。
+目前 45 项检查通过；已实测会员可读流程、非会员受限流程、会话复用、无窗口读取、双页模式适配、缓存与部分 EPUB，以及授权版权页和官方插图跳转。其余权益和操作系统场景的具体范围见 [运行与验收记录](references/operations.md)。
 
 ## 许可与致谢
 

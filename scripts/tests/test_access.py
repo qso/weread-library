@@ -95,6 +95,17 @@ class AccessTests(unittest.TestCase):
 
 @unittest.skipIf(export_runner is None, "Run with the skill's private Python to verify the export pipeline")
 class ExportAccessTests(unittest.IsolatedAsyncioTestCase):
+    def test_image_redirects_are_limited_to_verified_https_hosts(self):
+        self.assertTrue(export_runner.allowed_image_url("https://res.weread.qq.com/wrepub/example.jpg"))
+        cdn = "https://wrco-40036.sh.gfp.tencent-cloud.com/example.jpg?sign=fixture"
+        self.assertFalse(export_runner.allowed_image_url(cdn))
+        self.assertTrue(export_runner.allowed_image_url(cdn, redirect=True))
+        for url in ("https://127.0.0.1/image", "https://res.weread.qq.com.evil.test/a",
+                    "http://res.weread.qq.com/a", "https://res.weread.qq.com:8080/a",
+                    "https://user:secret@res.weread.qq.com/a", "https://other.tencent-cloud.com/a"):
+            with self.subTest(url=url):
+                self.assertFalse(export_runner.allowed_image_url(url, redirect=True))
+
     async def asyncSetUp(self):
         self.temp=tempfile.TemporaryDirectory()
         self.root=Path(self.temp.name)
