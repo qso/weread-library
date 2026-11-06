@@ -1,6 +1,6 @@
 ---
 name: weread-library
-description: 按自然语言书名找书、讲书、解读和基于原文问答。优先搜索本地书库，缺书再用微信读书；识别同名书和版本，复用 Omni 登录，后台获取正文并生成 EPUB/Markdown/TXT/HTML，也能导入 EPUB、文字 PDF、Markdown、TXT。
+description: 微信读书找书、下载电子书与 AI 解读技能。用户想找书、下载 EPUB、讲书、解读核心观点或基于原文问答时使用。优先查本地书库，缺书再搜微信读书；后台下载账号可读内容，支持 EPUB、Markdown、TXT、HTML，也能导入已有电子书。
 ---
 
 # 微信读书 · 找书与精读
